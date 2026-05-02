@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google TPUs 07 &mdash; v5e &amp; v5p, the Two-Track Fork</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg-primary:#0a0a0a; --bg-card:#0d1117; --bg-code:#161b22; --text-primary:#e6edf3; --text-secondary:#8b949e; --accent:#4285F4; --accent-dim:#4285F444; --accent-glow:#4285F433; --accent-2:#EA4335; --accent-3:#FBBC04; --accent-4:#34A853; --border:#21262d; --font-display:'Space Grotesk',sans-serif; --font-mono:'JetBrains Mono','Fira Code',monospace; --font-body:'Inter',sans-serif; --max-width:900px; }
+        *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+        html { scroll-behavior:smooth; }
+        body { background:var(--bg-primary); color:var(--text-primary); font-family:var(--font-body); font-size:17px; line-height:1.7; overflow-x:hidden; }
+        .hero { min-height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:2rem 1.5rem; text-align:center; position:relative; }
+        .hero::before { content:''; position:absolute; top:0; left:50%; transform:translateX(-50%); width:700px; height:600px; background:radial-gradient(circle,var(--accent-glow) 0%,transparent 70%); pointer-events:none; z-index:0; }
+        .hero > * { position:relative; z-index:1; }
+        .series-label { font-family:var(--font-mono); font-size:0.85rem; color:var(--accent); letter-spacing:0.15em; text-transform:uppercase; margin-bottom:1rem; }
+        .hero h1 { font-family:var(--font-display); font-size:clamp(2rem,5vw,3.2rem); font-weight:700; line-height:1.2; margin-bottom:1rem; }
+        .hero h1 .accent { color:var(--accent); }
+        .hero .subtitle { font-size:1.1rem; color:var(--text-secondary); max-width:640px; margin-bottom:2rem; }
+        .tags { display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center; margin-bottom:2.5rem; }
+        .tag { font-family:var(--font-mono); font-size:0.75rem; padding:0.25rem 0.75rem; border-radius:999px; border:1px solid var(--accent); color:var(--accent); background:var(--accent-dim); }
+        .pipeline { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:0.25rem; margin-bottom:1rem; max-width:var(--max-width); }
+        .pipeline-step { font-family:var(--font-mono); font-size:0.7rem; padding:0.3rem 0.7rem; background:var(--bg-card); border:1px solid var(--border); border-radius:4px; color:var(--text-secondary); }
+        .pipeline-arrow { color:var(--accent); font-size:0.9rem; font-weight:700; }
+        .slide { min-height:100vh; max-width:var(--max-width); margin:0 auto; padding:4rem 1.5rem; position:relative; display:flex; flex-direction:column; justify-content:center; }
+        .slide-number { font-family:var(--font-display); font-size:5rem; font-weight:700; color:var(--accent-dim); position:absolute; top:2rem; right:1.5rem; line-height:1; }
+        .slide h2 { font-family:var(--font-display); font-size:1.9rem; font-weight:700; color:var(--accent); margin-bottom:1.5rem; line-height:1.25; }
+        .slide h3 { font-family:var(--font-display); font-size:1.3rem; font-weight:600; color:var(--text-primary); margin-top:1.5rem; margin-bottom:0.75rem; }
+        .slide p { margin-bottom:1rem; color:var(--text-secondary); }
+        .slide p strong { color:var(--text-primary); }
+        .slide ul, .slide ol { margin-bottom:1rem; padding-left:1.5rem; color:var(--text-secondary); }
+        .slide li { margin-bottom:0.4rem; }
+        .slide li strong { color:var(--text-primary); }
+        .table-wrap { overflow-x:auto; margin:1.25rem 0; border-radius:8px; border:1px solid var(--border); }
+        table { width:100%; border-collapse:collapse; font-size:0.9rem; }
+        th { background:var(--bg-code); color:var(--accent); font-weight:600; text-align:left; padding:0.75rem 1rem; border-bottom:1px solid var(--border); font-family:var(--font-display); white-space:nowrap; }
+        td { padding:0.6rem 1rem; border-bottom:1px solid var(--border); color:var(--text-secondary); vertical-align:top; }
+        tr:last-child td { border-bottom:none; }
+        tr:nth-child(even) td { background:rgba(13,17,23,0.5); }
+        .diagram-grid { display:grid; gap:0.75rem; margin:1.5rem 0; padding:1.5rem; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; }
+        .diagram-grid.cols-2 { grid-template-columns:1fr 1fr; }
+        .diagram-grid.cols-3 { grid-template-columns:1fr 1fr 1fr; }
+        .diagram-panel { padding:1rem; background:var(--bg-code); border:1px solid var(--border); border-radius:6px; }
+        .diagram-panel.accent-border { border-left:3px solid var(--accent); }
+        .diagram-panel.r { border-left:3px solid var(--accent-2); }
+        .diagram-panel.y { border-left:3px solid var(--accent-3); }
+        .diagram-panel.g { border-left:3px solid var(--accent-4); }
+        .diagram-panel h4 { font-family:var(--font-display); font-size:1rem; color:var(--accent); margin-bottom:0.5rem; }
+        .diagram-panel.r h4 { color:var(--accent-2); }
+        .diagram-panel.y h4 { color:var(--accent-3); }
+        .diagram-panel.g h4 { color:var(--accent-4); }
+        .diagram-panel p, .diagram-panel ul { font-size:0.9rem; }
+        .callout { background:var(--bg-card); border-left:3px solid var(--accent); border-radius:0 8px 8px 0; padding:1rem 1.25rem; margin:1.25rem 0; }
+        .callout p { margin-bottom:0; }
+        .callout .callout-label { font-family:var(--font-mono); font-size:0.75rem; color:var(--accent); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.3rem; }
+        .canvas-wrap { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:1rem; margin:1.25rem 0; overflow-x:auto; }
+        .canvas-wrap canvas, .canvas-wrap svg { display:block; margin:0 auto; max-width:100%; }
+        .contents-list { list-style:none; padding-left:0; counter-reset:contents; }
+        .contents-list li { counter-increment:contents; padding:0.6rem 0; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:1rem; }
+        .contents-list li:last-child { border-bottom:none; }
+        .contents-list li::before { content:counter(contents,decimal-leading-zero); font-family:var(--font-mono); font-size:0.85rem; color:var(--accent); min-width:2rem; }
+        .contents-list a { color:var(--text-primary); text-decoration:none; }
+        .contents-list a:hover { color:var(--accent); }
+        .footer { text-align:center; padding:3rem 1.5rem; color:var(--text-secondary); font-size:0.85rem; border-top:1px solid var(--border); max-width:var(--max-width); margin:0 auto; }
+        .footer a { color:var(--accent); text-decoration:none; }
+        @media (max-width:640px) { .slide { padding:3rem 1rem; min-height:auto; } .slide-number { font-size:3rem; top:1.5rem; right:1rem; } .slide h2 { font-size:1.5rem; } .diagram-grid.cols-2,.diagram-grid.cols-3 { grid-template-columns:1fr; } .hero h1 { font-size:1.8rem; } table { font-size:0.78rem; } }
+    </style>
+</head>
+<body>
+
+<header class="hero">
+    <div class="series-label">Google TPUs Series &mdash; Presentation 07</div>
+    <h1>TPU <span class="accent">v5e &amp; v5p</span> &mdash; The Two-Track Fork</h1>
+    <p class="subtitle">2023 is the year Google admits the TPU is now two products. v5e is cheap and good enough; v5p is the chip Gemini trains on. The split that defines every TPU since.</p>
+    <div class="tags">
+        <span class="tag">v5e (Aug 2023)</span><span class="tag">v5p (Dec 2023)</span>
+        <span class="tag">e-class</span><span class="tag">p-class</span>
+        <span class="tag">Gemini 1.0/1.5</span><span class="tag">Multislice</span>
+        <span class="tag">8960-chip pod</span>
+    </div>
+    <div class="pipeline">
+        <span class="pipeline-step">v4 / v4i</span><span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">v5e (efficient)</span><span class="pipeline-arrow">+</span>
+        <span class="pipeline-step">v5p (performance)</span><span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Multislice</span><span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Pathways on Cloud</span><span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Gemini training</span>
+    </div>
+</header>
+
+<section class="slide" id="slide-00">
+    <div class="slide-number">00</div>
+    <h2>Topics We'll Cover</h2>
+    <ul class="contents-list">
+        <li><a href="#slide-01">Why Google Forked the Product Line</a></li>
+        <li><a href="#slide-02">v5e &mdash; The Efficient Chip</a></li>
+        <li><a href="#slide-03">v5p &mdash; The Frontier Training Chip</a></li>
+        <li><a href="#slide-04">Per-Chip Spec Comparison</a></li>
+        <li><a href="#slide-05">The 8,960-Chip v5p Pod</a></li>
+        <li><a href="#slide-06">v5e's 256-Chip 2D-Torus Pod</a></li>
+        <li><a href="#slide-07">Multislice &mdash; Crossing The Pod Boundary</a></li>
+        <li><a href="#slide-08">Pathways on Cloud</a></li>
+        <li><a href="#slide-09">Workloads &mdash; Gemini 1.0 / 1.5</a></li>
+        <li><a href="#slide-10">Pricing &amp; Availability</a></li>
+        <li><a href="#slide-11">What v5 Got Right And Wrong</a></li>
+        <li><a href="#slide-12">Cheat Sheet</a></li>
+    </ul>
+</section>
+
+<section class="slide" id="slide-01">
+    <div class="slide-number">01</div>
+    <h2>Why Google Forked the Product Line</h2>
+    <p>Until v4, Google shipped one TPU SKU per generation, plus an inference variant (v4i) that arrived a year later. By 2023 that pattern was breaking down for three reasons.</p>
+
+    <div class="diagram-grid cols-3">
+        <div class="diagram-panel y">
+            <h4>1. Cloud TPU customer mix</h4>
+            <p>Cloud TPU customers were split. Some wanted the cheapest chip per dollar for fine-tuning and inference. Others wanted the absolute biggest pod for training a frontier model. One SKU couldn't serve both well.</p>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>2. The cost gap</h4>
+            <p>v4 was expensive: 32 GiB HBM, two TensorCores, OCS-connected pod. For someone running a 7B-parameter inference fleet, ~70% of that silicon is dark. v5e cuts price by simplifying.</p>
+        </div>
+        <div class="diagram-panel g">
+            <h4>3. Gemini's appetite</h4>
+            <p>By mid-2023 Google's frontier model team needed pods bigger than 4096 chips. v5p ships with an <em>8,960-chip</em> pod &mdash; more than double v4 &mdash; specifically to enable Gemini-class runs.</p>
+        </div>
+    </div>
+
+    <h3>The product strategy in one slogan</h3>
+    <p><strong>"e-class" = cheaper than v4i ever was. "p-class" = bigger than v4 ever was.</strong> Same architecture team, same software stack, two SKUs per generation from this point onward.</p>
+
+    <div class="callout">
+        <div class="callout-label">Mirroring NVIDIA</div>
+        <p>NVIDIA does this too: GeForce RTX (consumer / inference) and HGX H100 (datacenter / training) are the same architecture in dramatically different packages. The TPU split is at smaller scale &mdash; one team, two SKUs per gen, no consumer line &mdash; but the strategic logic is the same.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-02">
+    <div class="slide-number">02</div>
+    <h2>v5e &mdash; The Efficient Chip</h2>
+    <p>Announced August 2023 at Google Cloud Next. Marketed as offering ~2.5&times; perf-per-dollar over v4 for inference, and ~2&times; for fine-tuning.</p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>Per-chip</h4>
+            <ul>
+                <li><strong>1 TensorCore</strong> with 4 MXUs, vector unit, scalar unit.</li>
+                <li><strong>197 TFLOPS bf16</strong>; <strong>393 TOPS INT8</strong>.</li>
+                <li><strong>16 GiB HBM</strong> at 819 GB/s.</li>
+                <li>4 ICI ports, <strong>400 GB/s bidirectional</strong> aggregate.</li>
+                <li>SparseCore on-die.</li>
+                <li>Process node not officially disclosed (widely reported as 5nm-class).</li>
+            </ul>
+        </div>
+        <div class="diagram-panel y">
+            <h4>Pod</h4>
+            <ul>
+                <li><strong>256-chip pod</strong>, 16&times;16 2D torus.</li>
+                <li>Pod aggregate: ~50.4 PFLOPS bf16, 4 TiB aggregate HBM.</li>
+                <li>No OCS within a pod &mdash; static torus topology.</li>
+                <li>Multipod uses Jupiter DCN (not ICI) for cross-pod traffic.</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>What v5e is for</h3>
+    <ul>
+        <li><strong>Fleet inference.</strong> Single-chip serving of 7B&ndash;30B-parameter models; v5e replaces v4i in this role.</li>
+        <li><strong>Fine-tuning at modest scale.</strong> A 64-chip slice of v5e is enough for a LoRA pass on a 70B-parameter base.</li>
+        <li><strong>Cost-sensitive training.</strong> If the model fits on 256 chips and the budget matters more than wall-clock time, v5e is the right answer.</li>
+    </ul>
+
+    <p>v5e is also the first TPU with explicit <strong>Multislice</strong> support &mdash; you can compose multiple v5e pods into a larger virtual training cluster over the Jupiter datacenter network. We'll come to that on slide 07.</p>
+</section>
+
+<section class="slide" id="slide-03">
+    <div class="slide-number">03</div>
+    <h2>v5p &mdash; The Frontier Training Chip</h2>
+    <p>Announced December 2023, four months after v5e. v5p is the chip Google trains its own frontier models on; it's the largest pod Google has ever shipped to that point.</p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>Per-chip</h4>
+            <ul>
+                <li><strong>2 TensorCores</strong>, each with 4 MXUs.</li>
+                <li><strong>4 SparseCores</strong> per chip.</li>
+                <li><strong>459 TFLOPS bf16</strong>; <strong>918 TOPS INT8</strong>.</li>
+                <li><strong>95 GiB HBM</strong> at 2.76 TB/s &mdash; almost 3&times; v5e's bandwidth.</li>
+                <li>6 ICI ports for 3D-torus connectivity.</li>
+                <li><strong>4,800 Gbps total ICI</strong> per chip = 600 GB/s per direction = 1.2 TB/s bidir.</li>
+            </ul>
+        </div>
+        <div class="diagram-panel y">
+            <h4>Pod</h4>
+            <ul>
+                <li><strong>8,960-chip pod</strong>.</li>
+                <li>3D torus + OCS &mdash; same family as v4 but bigger.</li>
+                <li>Pod aggregate: <strong>~4.1 ExaFLOPS bf16</strong>; ~850 TiB aggregate HBM.</li>
+                <li>Max single-job slice = 96 cubes = 6,144 chips.</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>The 95 GiB HBM number</h3>
+    <p>The single most-asked question about v5p is "why 95 GiB and not 96?" Two facts: (1) HBM stacks come in standard sizes (16, 24 GiB per stack); v5p has six stacks &times; 16 GiB = 96 GiB physical. (2) Some capacity is reserved for ECC / sparing / firmware. The user-visible figure that Google publishes is 95 GiB. Treat 95 and 96 as the same number with different accounting.</p>
+
+    <div class="callout">
+        <div class="callout-label">A 95-GiB-per-chip HBM budget</div>
+        <p>For comparison: v4 had 32 GiB; H100 SXM has 80 GiB; H200 has 141 GiB. v5p sits between H100 and H200 on capacity but gives you a lot more <em>chips per pod</em> &mdash; 8,960 vs the few thousand you'd realistically scale-up with NVLink+IB. <strong>The TPU pod's economic moat is per-pod aggregate HBM, not per-chip HBM.</strong></p>
+    </div>
+</section>
+
+<section class="slide" id="slide-04">
+    <div class="slide-number">04</div>
+    <h2>Per-Chip Spec Comparison</h2>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th></th><th>v4 (2020)</th><th>v5e (Aug 2023)</th><th>v5p (Dec 2023)</th></tr></thead>
+            <tbody>
+                <tr><td>TensorCores</td><td>2</td><td>1</td><td>2</td></tr>
+                <tr><td>MXUs per TensorCore</td><td>4</td><td>4</td><td>4</td></tr>
+                <tr><td>SparseCores</td><td>1</td><td>1</td><td>4</td></tr>
+                <tr><td>Per-chip bf16</td><td>275 TFLOPS</td><td>197 TFLOPS</td><td>459 TFLOPS</td></tr>
+                <tr><td>Per-chip INT8</td><td>—</td><td>393 TOPS</td><td>918 TOPS</td></tr>
+                <tr><td>HBM</td><td>32 GiB @ 1.2 TB/s</td><td>16 GiB @ 819 GB/s</td><td>95 GiB @ 2.76 TB/s</td></tr>
+                <tr><td>ICI per chip (bidir)</td><td>~300 GB/s</td><td>400 GB/s</td><td>1.2 TB/s</td></tr>
+                <tr><td>Topology</td><td>3D torus + OCS</td><td>2D torus</td><td>3D torus + OCS</td></tr>
+                <tr><td>Pod size</td><td>4,096</td><td>256</td><td>8,960</td></tr>
+                <tr><td>Pod bf16</td><td>~1.13 EFLOPS</td><td>~50.4 PFLOPS</td><td>~4.11 EFLOPS</td></tr>
+                <tr><td>Pod HBM</td><td>~128 TiB</td><td>~4 TiB</td><td>~850 TiB</td></tr>
+                <tr><td>Cooling</td><td>Liquid</td><td>Liquid</td><td>Liquid</td></tr>
+                <tr><td>Role</td><td>Training</td><td>Cost-optimised</td><td>Training flagship</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p>Two observations. First, v5p is <strong>1.7&times; v4 per chip on bf16</strong> but the pod is 2.2&times; bigger, so pod-level v5p is ~3.6&times; v4. Second, v5e is <strong>~70% of v4 per chip</strong> at a much lower price point &mdash; the perf-per-dollar improvement is real but it isn't a faster chip; it's a cheaper one.</p>
+</section>
+
+<section class="slide" id="slide-05">
+    <div class="slide-number">05</div>
+    <h2>The 8,960-Chip v5p Pod</h2>
+    <p>The largest scale-up domain Google had ever built at the time it shipped (Dec 2023). The topology is the v4 architecture taken to its logical extreme.</p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>Pod organisation</h4>
+            <ul>
+                <li>Chips arranged as a 3D torus.</li>
+                <li>Cubes connected through Palomar-class OCS (8,960 chips means a much larger OCS infrastructure than v4's 48 switches).</li>
+                <li>Maximum schedulable slice for one job: <strong>6,144 chips</strong> (96 cubes of 64).</li>
+                <li>Twisted-torus topology supported per-job.</li>
+            </ul>
+        </div>
+        <div class="diagram-panel y">
+            <h4>Pod aggregate numbers</h4>
+            <ul>
+                <li><strong>~4.1 ExaFLOPS bf16</strong> peak.</li>
+                <li><strong>~850 TiB</strong> aggregate HBM.</li>
+                <li><strong>~10 PB/s</strong> aggregate ICI bandwidth.</li>
+                <li><strong>~5 MW</strong> typical pod power.</li>
+                <li>Liquid-cooled, 100+ racks.</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>What you can fit in this</h3>
+    <p>A dense 1T-parameter model in bf16 weighs 2 TB. With 850 TiB aggregate HBM, a v5p pod can hold ~400 such models, or one such model with all optimiser state plus arbitrarily large activation memory for backprop. <strong>v5p is the first TPU pod where pod-aggregate HBM stops being a binding constraint for any LLM Google trains</strong>; the constraint moves to compute time and orchestration.</p>
+</section>
+
+<section class="slide" id="slide-06">
+    <div class="slide-number">06</div>
+    <h2>v5e's 256-Chip 2D-Torus Pod</h2>
+    <p>v5e's pod is much smaller, much cheaper, and intentionally simpler. <strong>256 chips, 16&times;16 2D torus, no OCS within a pod.</strong></p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel y">
+            <h4>Why no OCS?</h4>
+            <ul>
+                <li>OCS infrastructure is non-trivial cost &mdash; 48+ switches per pod.</li>
+                <li>For 256 chips, the OCS reconfigurability isn't worth it: a 16&times;16 torus is small enough that you don't need to slice it dynamically.</li>
+                <li>Faults are handled at the multi-pod level (route around a faulty pod), not within a pod.</li>
+            </ul>
+        </div>
+        <div class="diagram-panel g">
+            <h4>Why 2D not 3D?</h4>
+            <ul>
+                <li>4 ICI ports per chip is enough for a 16&times;16 torus.</li>
+                <li>Cuts ICI silicon and packaging cost ~33% vs 6-port 3D.</li>
+                <li>For inference batches and small training runs, 2D-torus all-reduce is plenty.</li>
+                <li>Multipod scaling uses Jupiter DCN, not extending the torus.</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>The slice configurations</h3>
+    <p>A v5e pod can be sliced into smaller jobs at fixed shapes &mdash; <code>1x1</code>, <code>2x2</code>, <code>2x4</code>, <code>4x4</code>, <code>4x8</code>, <code>8x8</code>, <code>8x16</code>, <code>16x16</code>. Each job gets a sub-torus. Cloud TPU schedules these as queued resources &mdash; you ask for a shape, you wait until one is free.</p>
+
+    <div class="callout">
+        <div class="callout-label">The "good enough" thesis</div>
+        <p>v5e's value proposition isn't "best at any one thing"; it's "good enough at most things, much cheaper". For inference of a 70B model: 4 chips are enough. For LoRA fine-tuning of Gemma 27B: 64 chips are enough. For pre-training a 7B model from scratch: 256 chips are enough. The v5e pod is sized to those use cases.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-07">
+    <div class="slide-number">07</div>
+    <h2>Multislice &mdash; Crossing The Pod Boundary</h2>
+    <p>Multislice is a Cloud TPU feature, announced at Google Cloud Next August 2023, that lets a single training job span <em>multiple slices</em>, potentially across multiple pods, with high-bandwidth ICI inside each slice and the Jupiter DCN between slices.</p>
+
+    <div class="canvas-wrap">
+        <svg viewBox="0 0 700 320" width="700" height="320" xmlns="http://www.w3.org/2000/svg">
+            <style>
+                .pod { fill:rgba(66,133,244,0.15); stroke:#4285F4; }
+                .slice { fill:rgba(52,168,83,0.20); stroke:#34A853; }
+                .dcn { stroke:#EA4335; stroke-width:2; fill:none; stroke-dasharray:6 4; }
+                .ici { stroke:#4285F4; stroke-width:2; fill:none; }
+                .lbl { fill:#e6edf3; font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:13px; text-anchor:middle; }
+                .sublbl { fill:#8b949e; font-family:'JetBrains Mono',monospace; font-size:10px; text-anchor:middle; }
+            </style>
+            <!-- Pod 1 -->
+            <rect class="pod" x="20" y="40" width="200" height="200" rx="6"/>
+            <text class="lbl" x="120" y="60">v5p Pod A</text>
+            <text class="sublbl" x="120" y="76">8,960 chips</text>
+            <rect class="slice" x="40" y="100" width="160" height="50" rx="4"/>
+            <text class="sublbl" x="120" y="122">slice 1 — 1024 chips</text>
+            <text class="sublbl" x="120" y="138">internal 3D torus + OCS</text>
+            <rect class="slice" x="40" y="170" width="160" height="50" rx="4"/>
+            <text class="sublbl" x="120" y="192">slice 2 — 1024 chips</text>
+            <!-- Pod 2 -->
+            <rect class="pod" x="260" y="40" width="200" height="200" rx="6"/>
+            <text class="lbl" x="360" y="60">v5p Pod B</text>
+            <text class="sublbl" x="360" y="76">8,960 chips</text>
+            <rect class="slice" x="280" y="100" width="160" height="50" rx="4"/>
+            <text class="sublbl" x="360" y="122">slice 3 — 1024 chips</text>
+            <!-- Pod 3 -->
+            <rect class="pod" x="500" y="40" width="180" height="200" rx="6"/>
+            <text class="lbl" x="590" y="60">v5p Pod C</text>
+            <text class="sublbl" x="590" y="76">8,960 chips</text>
+            <rect class="slice" x="520" y="100" width="140" height="50" rx="4"/>
+            <text class="sublbl" x="590" y="122">slice 4 — 1024 chips</text>
+            <!-- DCN connections (multislice) -->
+            <path class="dcn" d="M 200 125 Q 240 125 280 125"/>
+            <path class="dcn" d="M 440 125 Q 470 125 520 125"/>
+            <path class="dcn" d="M 200 195 C 250 250 450 250 540 145"/>
+            <text x="350" y="290" class="sublbl">multislice = ICI inside each slice + Jupiter DCN between slices</text>
+            <text x="350" y="305" class="sublbl">single program, single dataflow graph, asynchronous compilation across slices</text>
+        </svg>
+    </div>
+
+    <h3>How it differs from data-parallel-only</h3>
+    <ul>
+        <li>You can shard a single tensor across slices, with partial-sum or reduce-scatter across the DCN.</li>
+        <li>Optimiser state can live on the slice with most spare HBM, not necessarily where the gradient is computed.</li>
+        <li>The compiler (XLA / GSPMD / Shardy) treats the entire multislice as one logical mesh.</li>
+        <li>Cross-slice latency (Jupiter DCN) is on the order of microseconds to milliseconds, vs sub-microsecond for ICI &mdash; so collective patterns are designed to run at slice granularity, not chip granularity.</li>
+    </ul>
+</section>
+
+<section class="slide" id="slide-08">
+    <div class="slide-number">08</div>
+    <h2>Pathways on Cloud</h2>
+    <p>The orchestration layer that makes Multislice usable. <strong>Pathways</strong> (Barham, Dean, Ghemawat et al., MLSys 2022) is Google's single-controller distributed-dataflow runtime for ML &mdash; one Python process drives compilation, scheduling, and execution across thousands of chips.</p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>What Pathways does</h4>
+            <ul>
+                <li>Single Python client; one logical program.</li>
+                <li>Asynchronous compilation: each shard is compiled independently and held in a cache.</li>
+                <li>Dataflow graph that spans pods, with explicit barriers and collective ops.</li>
+                <li>Dynamic re-sharding: a job can change shape mid-run if a pod fails.</li>
+                <li>JAX is the production frontend; PyTorch via PyTorch/XLA also supported.</li>
+            </ul>
+        </div>
+        <div class="diagram-panel y">
+            <h4>Where it differs from "MPI but for TPUs"</h4>
+            <ul>
+                <li>MPI: every rank runs the same program independently and synchronises.</li>
+                <li>Pathways: <strong>one</strong> program, the controller dispatches to thousands of workers asynchronously.</li>
+                <li>You can debug, profile, and trace from the single client.</li>
+                <li>It works well for heterogeneous pipelines &mdash; the kind that arise in MoE and reinforcement learning.</li>
+            </ul>
+        </div>
+    </div>
+
+    <p>Pathways underpinned the PaLM training run on v4 in 2022; it scaled to multi-pod with v5p and Gemini in 2023&ndash;24; and is now the standard orchestration story for any TPU job above ~1,000 chips.</p>
+</section>
+
+<section class="slide" id="slide-09">
+    <div class="slide-number">09</div>
+    <h2>Workloads &mdash; Gemini 1.0 / 1.5</h2>
+    <p>The flagship workload for v5p: <strong>Gemini</strong>. Google's Gemini 1.0 paper (Dec 2023) explicitly credits TPU v4 and v5e for training; Gemini 1.5 Pro (Feb 2024) is widely understood to be a v5p training job, with Pathways orchestration.</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Model</th><th>Year</th><th>Hardware</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td>Gemini 1.0 Ultra / Pro / Nano</td><td>Dec 2023</td><td>TPU v4 + v5e</td><td>Trained across multiple pods via Pathways. v5e for the smaller variants (Nano) and inference; v4 for pretraining heavy lifting.</td></tr>
+                <tr><td>Gemini 1.5 Pro (1M context)</td><td>Feb 2024</td><td>TPU v5p</td><td>The first v5p showcase. The 1M-token context is enabled by v5p's 95 GiB per chip and high HBM bandwidth.</td></tr>
+                <tr><td>Gemini 1.5 Flash</td><td>May 2024</td><td>TPU v5p / v5e mix</td><td>Distillation from 1.5 Pro; serving on v5e for cost.</td></tr>
+                <tr><td>Bard &rarr; Gemini App inference</td><td>2023&ndash;24</td><td>v5e fleet</td><td>The user-facing chatbot's inference fleet migrated from v4i to v5e through 2023.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">Why v5p for 1M context</div>
+        <p>Long-context inference is dominated by KV cache. A 1M-token context for a Gemini-class model is hundreds of GB of KV. v5p's 95 GiB per chip and 2.76 TB/s HBM bandwidth let a single instance hold and stream that KV; smaller-HBM chips force you to split it across more chips, paying ICI all-reduce on every step.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-10">
+    <div class="slide-number">10</div>
+    <h2>Pricing &amp; Availability</h2>
+    <p>v5e and v5p are sold via Google Cloud as both on-demand and reservation pricing. Public list prices (US-central, on-demand, May 2026) are roughly:</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>SKU</th><th>Per chip-hour</th><th>Per pod-hour (full pod)</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td>v5e (1 chip)</td><td>~$1.20</td><td>~$307 (256 chips)</td><td>By far the cheapest TPU.</td></tr>
+                <tr><td>v5p (1 chip)</td><td>~$4.20</td><td>~$37,600 (8,960 chips)</td><td>Roughly 3.5&times; v5e per chip.</td></tr>
+                <tr><td>Trillium v6e</td><td>~$2.70</td><td>~$691 (256 chips)</td><td>4.7&times; v5e perf at ~2.3&times; the price.</td></tr>
+                <tr><td>Ironwood v7</td><td>(reserved-only)</td><td>(reserved-only)</td><td>Capacity sold via long-term commitments at GA in late 2025.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h3>Provisioning</h3>
+    <ul>
+        <li><strong>Cloud TPU VM</strong> &mdash; the modern API. You get a host VM attached to TPU chips; SSH in, run JAX or PyTorch.</li>
+        <li><strong>Queued Resources</strong> &mdash; for v5e/v5p/Trillium, you submit a request for a shape; it waits until capacity is free. The standard provisioning pattern.</li>
+        <li><strong>GKE TPU node pools</strong> &mdash; TPUs as Kubernetes resources, with multi-host slice support.</li>
+        <li><strong>Pathways on Cloud</strong> &mdash; for jobs that need multipod or async resharding.</li>
+    </ul>
+
+    <p>Disclaimer: prices change. Treat the table as illustrative; check the current Cloud TPU pricing page for live numbers.</p>
+</section>
+
+<section class="slide" id="slide-11">
+    <div class="slide-number">11</div>
+    <h2>What v5 Got Right And Wrong</h2>
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel g">
+            <h4>Got right</h4>
+            <ul>
+                <li>The product fork itself. Two SKUs serve customers much better than one.</li>
+                <li>v5p's 95 GiB HBM &mdash; the right capacity for Gemini-class context lengths.</li>
+                <li>Multislice and Pathways on Cloud &mdash; cross-pod jobs become routine, not heroic.</li>
+                <li>v5e's 2D-torus simplification &mdash; right tradeoff for the e-class price point.</li>
+                <li>SparseCore &times;4 on v5p &mdash; reflects MoE workloads becoming first-class.</li>
+            </ul>
+        </div>
+        <div class="diagram-panel y">
+            <h4>What v6 / v7 then changed</h4>
+            <ul>
+                <li>v5e's 197 TFLOPS was below NVIDIA H100's bf16 (~989 TFLOPS dense) by a noticeable margin. Trillium closes most of the gap (918 TFLOPS bf16) at the same form factor.</li>
+                <li>v5p's 459 TFLOPS bf16 was competitive but didn't have FP8. Ironwood adds FP8 at 4.6 PFLOPS &mdash; 10&times; on the headline number.</li>
+                <li>HBM3e wasn't ready for v5; Ironwood ships with 192 GiB HBM3e per chip in 2025.</li>
+                <li>The ICI bandwidth on v5e (400 GB/s) was already a bottleneck for some workloads; Trillium doubles it.</li>
+            </ul>
+        </div>
+    </div>
+
+    <p>v5 is the chip that defines the modern TPU product strategy. Trillium and Ironwood are refinements of the v5e and v5p archetypes &mdash; they don't change the strategy, they execute on it.</p>
+</section>
+
+<section class="slide" id="slide-12">
+    <div class="slide-number">12</div>
+    <h2>Cheat Sheet</h2>
+    <ul>
+        <li><strong>v5e (Aug 2023):</strong> 1 TensorCore, 197 TFLOPS bf16, 16 GiB HBM, 400 GB/s ICI, 256-chip 2D-torus pod, no OCS, ~$1.20/chip-hr.</li>
+        <li><strong>v5p (Dec 2023):</strong> 2 TensorCores, 4 SparseCores, 459 TFLOPS bf16, 95 GiB HBM at 2.76 TB/s, 1.2 TB/s ICI, 8,960-chip 3D-torus + OCS pod, the chip Gemini 1.5 trains on.</li>
+        <li><strong>The product fork:</strong> "e-class" = cheaper than v4i, "p-class" = bigger than v4. One team, two SKUs per gen.</li>
+        <li><strong>Multislice (Aug 2023):</strong> single training job spans multiple slices / pods, ICI inside slices + Jupiter DCN between.</li>
+        <li><strong>Pathways on Cloud:</strong> single-controller orchestration, public extension of the system that trained PaLM.</li>
+        <li><strong>v5p pod aggregate:</strong> ~4.1 ExaFLOPS bf16, ~850 TiB HBM &mdash; pod HBM stops being a binding constraint for LLM training.</li>
+        <li><strong>v5e use cases:</strong> fleet inference, fine-tuning, small-scale pretraining. <strong>v5p use cases:</strong> Gemini-class frontier training.</li>
+        <li><strong>Long context lives on v5p</strong> &mdash; Gemini 1.5 Pro's 1M-token context only works because of the 95 GiB / 2.76 TB/s per-chip HBM combination.</li>
+    </ul>
+
+    <div class="callout">
+        <div class="callout-label">Read next</div>
+        <p>Deck <strong>08 &mdash; Trillium &amp; Ironwood</strong> covers the 2024&ndash;2025 chips that take this same strategy further. Deck <strong>11 &mdash; Software Stack</strong> covers Pathways, GSPMD, JAX sharding in detail.</p>
+    </div>
+</section>
+
+<footer class="footer">
+    <p>Part of the <a href="https://github.com/BrendanJamesLynskey/LLM_Hub_Google_TPUs">Google TPUs</a> series. Sources: Cloud TPU v5e and v5p docs (cloud.google.com/tpu/docs/v5e, cloud.google.com/tpu/docs/v5p); v5p launch blog (Dec 2023); Multislice overview (cloud.google.com/tpu/docs/multislice-introduction); Barham, Dean, Ghemawat et al., "Pathways", MLSys 2022 (arXiv:2203.12533); Gemini 1.0 / 1.5 papers and blog posts.</p>
+</footer>
+
+</body>
+</html>
