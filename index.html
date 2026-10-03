@@ -188,7 +188,7 @@
                 <li><strong>2 TensorCores</strong>, each with 4 MXUs.</li>
                 <li><strong>4 SparseCores</strong> per chip.</li>
                 <li><strong>459 TFLOPS bf16</strong>; <strong>918 TOPS INT8</strong>.</li>
-                <li><strong>95 GiB HBM</strong> at 2.76 TB/s &mdash; almost 3&times; v5e's bandwidth.</li>
+                <li><strong>95 GiB HBM</strong> at 2.76 TB/s &mdash; ~3.4&times; v5e's bandwidth.</li>
                 <li>6 ICI ports for 3D-torus connectivity.</li>
                 <li><strong>4,800 Gbps total ICI</strong> per chip = 600 GB/s per direction = 1.2 TB/s bidir.</li>
             </ul>
@@ -198,7 +198,7 @@
             <ul>
                 <li><strong>8,960-chip pod</strong>.</li>
                 <li>3D torus + OCS &mdash; same family as v4 but bigger.</li>
-                <li>Pod aggregate: <strong>~4.1 ExaFLOPS bf16</strong>; ~850 TiB aggregate HBM.</li>
+                <li>Pod aggregate: <strong>~4.1 ExaFLOPS bf16</strong>; ~830 TiB aggregate HBM.</li>
                 <li>Max single-job slice = 96 cubes = 6,144 chips.</li>
             </ul>
         </div>
@@ -222,7 +222,7 @@
             <tbody>
                 <tr><td>TensorCores</td><td>2</td><td>1</td><td>2</td></tr>
                 <tr><td>MXUs per TensorCore</td><td>4</td><td>4</td><td>4</td></tr>
-                <tr><td>SparseCores</td><td>1</td><td>1</td><td>4</td></tr>
+                <tr><td>SparseCores</td><td>4</td><td>&mdash;</td><td>4</td></tr>
                 <tr><td>Per-chip bf16</td><td>275 TFLOPS</td><td>197 TFLOPS</td><td>459 TFLOPS</td></tr>
                 <tr><td>Per-chip INT8</td><td>—</td><td>393 TOPS</td><td>918 TOPS</td></tr>
                 <tr><td>HBM</td><td>32 GiB @ 1.2 TB/s</td><td>16 GiB @ 819 GB/s</td><td>95 GiB @ 2.76 TB/s</td></tr>
@@ -230,7 +230,7 @@
                 <tr><td>Topology</td><td>3D torus + OCS</td><td>2D torus</td><td>3D torus + OCS</td></tr>
                 <tr><td>Pod size</td><td>4,096</td><td>256</td><td>8,960</td></tr>
                 <tr><td>Pod bf16</td><td>~1.13 EFLOPS</td><td>~50.4 PFLOPS</td><td>~4.11 EFLOPS</td></tr>
-                <tr><td>Pod HBM</td><td>~128 TiB</td><td>~4 TiB</td><td>~850 TiB</td></tr>
+                <tr><td>Pod HBM</td><td>~128 TiB</td><td>~4 TiB</td><td>~830 TiB</td></tr>
                 <tr><td>Cooling</td><td>Liquid</td><td>Liquid</td><td>Liquid</td></tr>
                 <tr><td>Role</td><td>Training</td><td>Cost-optimised</td><td>Training flagship</td></tr>
             </tbody>
@@ -259,7 +259,7 @@
             <h4>Pod aggregate numbers</h4>
             <ul>
                 <li><strong>~4.1 ExaFLOPS bf16</strong> peak.</li>
-                <li><strong>~850 TiB</strong> aggregate HBM.</li>
+                <li><strong>~830 TiB</strong> aggregate HBM.</li>
                 <li><strong>~10 PB/s</strong> aggregate ICI bandwidth.</li>
                 <li><strong>~5 MW</strong> typical pod power.</li>
                 <li>Liquid-cooled, 100+ racks.</li>
@@ -268,7 +268,7 @@
     </div>
 
     <h3>What you can fit in this</h3>
-    <p>A dense 1T-parameter model in bf16 weighs 2 TB. With 850 TiB aggregate HBM, a v5p pod can hold ~400 such models, or one such model with all optimiser state plus arbitrarily large activation memory for backprop. <strong>v5p is the first TPU pod where pod-aggregate HBM stops being a binding constraint for any LLM Google trains</strong>; the constraint moves to compute time and orchestration.</p>
+    <p>A dense 1T-parameter model in bf16 weighs 2 TB. With 830 TiB aggregate HBM, a v5p pod can hold ~450 such models, or one such model with all optimiser state plus arbitrarily large activation memory for backprop. <strong>v5p is the first TPU pod where pod-aggregate HBM stops being a binding constraint for any LLM Google trains</strong>; the constraint moves to compute time and orchestration.</p>
 </section>
 
 <section class="slide" id="slide-06">
@@ -392,22 +392,22 @@
 <section class="slide" id="slide-09">
     <div class="slide-number">09</div>
     <h2>Workloads &mdash; Gemini 1.0 / 1.5</h2>
-    <p>The flagship workload for v5p: <strong>Gemini</strong>. Google's Gemini 1.0 paper (Dec 2023) explicitly credits TPU v4 and v5e for training; Gemini 1.5 Pro (Feb 2024) is widely understood to be a v5p training job, with Pathways orchestration.</p>
+    <p>The flagship workload for v5p: <strong>Gemini</strong>. Google's Gemini 1.0 paper (Dec 2023) explicitly credits TPU v4 and v5e for training; the Gemini 1.5 report (Feb 2024) likewise says it trained on 4096-chip TPU v4 pods. v5p's role is the generation after.</p>
 
     <div class="table-wrap">
         <table>
             <thead><tr><th>Model</th><th>Year</th><th>Hardware</th><th>Notes</th></tr></thead>
             <tbody>
                 <tr><td>Gemini 1.0 Ultra / Pro / Nano</td><td>Dec 2023</td><td>TPU v4 + v5e</td><td>Trained across multiple pods via Pathways. v5e for the smaller variants (Nano) and inference; v4 for pretraining heavy lifting.</td></tr>
-                <tr><td>Gemini 1.5 Pro (1M context)</td><td>Feb 2024</td><td>TPU v5p</td><td>The first v5p showcase. The 1M-token context is enabled by v5p's 95 GiB per chip and high HBM bandwidth.</td></tr>
-                <tr><td>Gemini 1.5 Flash</td><td>May 2024</td><td>TPU v5p / v5e mix</td><td>Distillation from 1.5 Pro; serving on v5e for cost.</td></tr>
+                <tr><td>Gemini 1.5 Pro (1M context)</td><td>Feb 2024</td><td>TPU v4 (per the report)</td><td>Trained on 4096-chip TPU v4 pods; serving hardware not disclosed.</td></tr>
+                <tr><td>Gemini 1.5 Flash</td><td>May 2024</td><td>TPU v4 (per the report)</td><td>Distilled from 1.5 Pro; covered by the same report.</td></tr>
                 <tr><td>Bard &rarr; Gemini App inference</td><td>2023&ndash;24</td><td>v5e fleet</td><td>The user-facing chatbot's inference fleet migrated from v4i to v5e through 2023.</td></tr>
             </tbody>
         </table>
     </div>
 
     <div class="callout">
-        <div class="callout-label">Why v5p for 1M context</div>
+        <div class="callout-label">Why high-HBM chips suit 1M context</div>
         <p>Long-context inference is dominated by KV cache. A 1M-token context for a Gemini-class model is hundreds of GB of KV. v5p's 95 GiB per chip and 2.76 TB/s HBM bandwidth let a single instance hold and stream that KV; smaller-HBM chips force you to split it across more chips, paying ICI all-reduce on every step.</p>
     </div>
 </section>
@@ -473,13 +473,13 @@
     <h2>Cheat Sheet</h2>
     <ul>
         <li><strong>v5e (Aug 2023):</strong> 1 TensorCore, 197 TFLOPS bf16, 16 GiB HBM, 400 GB/s ICI, 256-chip 2D-torus pod, no OCS, ~$1.20/chip-hr.</li>
-        <li><strong>v5p (Dec 2023):</strong> 2 TensorCores, 4 SparseCores, 459 TFLOPS bf16, 95 GiB HBM at 2.76 TB/s, 1.2 TB/s ICI, 8,960-chip 3D-torus + OCS pod, the chip Gemini 1.5 trains on.</li>
+        <li><strong>v5p (Dec 2023):</strong> 2 TensorCores, 4 SparseCores, 459 TFLOPS bf16, 95 GiB HBM at 2.76 TB/s, 1.2 TB/s ICI, 8,960-chip 3D-torus + OCS pod.</li>
         <li><strong>The product fork:</strong> "e-class" = cheaper than v4i, "p-class" = bigger than v4. One team, two SKUs per gen.</li>
         <li><strong>Multislice (Aug 2023):</strong> single training job spans multiple slices / pods, ICI inside slices + Jupiter DCN between.</li>
         <li><strong>Pathways on Cloud:</strong> single-controller orchestration, public extension of the system that trained PaLM.</li>
-        <li><strong>v5p pod aggregate:</strong> ~4.1 ExaFLOPS bf16, ~850 TiB HBM &mdash; pod HBM stops being a binding constraint for LLM training.</li>
+        <li><strong>v5p pod aggregate:</strong> ~4.1 ExaFLOPS bf16, ~830 TiB HBM &mdash; pod HBM stops being a binding constraint for LLM training.</li>
         <li><strong>v5e use cases:</strong> fleet inference, fine-tuning, small-scale pretraining. <strong>v5p use cases:</strong> Gemini-class frontier training.</li>
-        <li><strong>Long context lives on v5p</strong> &mdash; Gemini 1.5 Pro's 1M-token context only works because of the 95 GiB / 2.76 TB/s per-chip HBM combination.</li>
+        <li><strong>Long context favours high-HBM chips</strong> &mdash; v5p's 95 GiB / 2.76 TB/s per chip holds far more KV than v4 or v5e (Gemini 1.5 itself trained on v4).</li>
     </ul>
 
     <div class="callout">
